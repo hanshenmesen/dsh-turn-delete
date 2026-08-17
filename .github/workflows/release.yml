@@ -1,0 +1,27 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: mkdir -p release
+      - run: npm pack --pack-destination release
+      - run: cp release/dsh-turn-delete-*.tgz release/dsh-turn-delete.tgz
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release/dsh-turn-delete.tgz --generate-notes --title "$GITHUB_REF_NAME"
