@@ -6,6 +6,12 @@ Delete one complete closed turn from a DeepSeek Harness conversation without del
 
 ## Install
 
+From npm (recommended):
+
+```sh
+dsh plugin --profile web add dsh-turn-delete
+```
+
 From GitHub:
 
 ```sh

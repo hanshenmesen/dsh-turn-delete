@@ -6,6 +6,12 @@
 
 ## 安装
 
+从 npm 安装（推荐）：
+
+```sh
+dsh plugin --profile web add dsh-turn-delete
+```
+
 从 GitHub 安装：
 
 ```sh
