@@ -4,6 +4,12 @@ English | [中文](README.zh.md)
 
 Delete one complete closed turn from a DeepSeek Harness conversation without deleting or replacing the Session. The action appears beside the final assistant response for each completed top-level turn.
 
+## Demo
+
+Delete the middle turn after confirmation while keeping the same Session and its later turn. This was recorded through the real DeepSeek model flow on DeepSeek Harness `0.1.0-rc.7`.
+
+![Delete one turn without deleting the Session](https://github.com/hanshenmesen/dsh-turn-delete/releases/download/v0.1.0/dsh-turn-delete-demo.gif)
+
 ## Install
 
 From npm (recommended):

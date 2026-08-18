@@ -4,6 +4,12 @@
 
 从 DeepSeek Harness 对话中删除一个完整且已经结束的 Turn（轮次），不删除或替换整个 Session。每个已完成的顶层轮次，其最后一条助手回复旁会出现删除按钮。
 
+## 演示
+
+确认后删除中间轮次，同时保留原 Session 与后续轮次。本演示通过 DeepSeek Harness `0.1.0-rc.7` 的真实 DeepSeek 模型流程录制。
+
+![删除单个轮次而不删除 Session](https://github.com/hanshenmesen/dsh-turn-delete/releases/download/v0.1.0/dsh-turn-delete-demo.gif)
+
 ## 安装
 
 从 npm 安装（推荐）：
