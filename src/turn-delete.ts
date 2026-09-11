@@ -41,6 +41,21 @@ function eventTurn(event: SessionEvent): number | undefined {
   return undefined
 }
 
+/**
+ * Read a Session's event array.
+ *
+ * DSH 0.1.2-alpha.1 removed the `Session.events` property; the public API is
+ * now `snapshotEvents()` (plus `ownEvents()` / `eventAt(seq)`). Reading through
+ * this helper keeps one build working on both kernels.
+ */
+function sessionEvents(session: {
+  snapshotEvents?: () => readonly SessionEvent[]
+  events?: readonly SessionEvent[]
+}): readonly SessionEvent[] {
+  if (typeof session.snapshotEvents === 'function') return session.snapshotEvents()
+  return session.events ?? []
+}
+
 function turnBracket(
   events: readonly SessionEvent[],
   turn: number,
@@ -96,7 +111,7 @@ async function deleteUnderMaintenance(
   if (ctx.sessions.get(session.id) !== session) {
     throw new TurnDeleteError('TARGET_NOT_FOUND', `session "${session.id}" is no longer live`)
   }
-  const events = session.events
+  const events = sessionEvents(session)
   const target = events.find((event): event is SessionEvent<'assistant/message'> =>
     event.type === 'assistant/message'
     && isAppendSurfaceEvent(event)
