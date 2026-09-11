@@ -10,7 +10,7 @@ import { selectDeletedTurn, turnDeletionDefinition } from './turn-deletion.ts'
 
 const NS = 'turn-delete'
 
-export const inject = ['slots', 'locale', 'conversationEvents']
+export const inject = ['slots', 'locale', 'uiConversation']
 
 async function postDelete(sessionId: string, assistantMessageId: MessageId): Promise<DeleteTurnResponse> {
   const response = await fetch(TURN_DELETE_PATH, {
@@ -26,7 +26,7 @@ async function postDelete(sessionId: string, assistantMessageId: MessageId): Pro
 }
 
 export function apply(ctx: ClientContext): void {
-  ctx.conversationEvents.register(turnDeletionDefinition)
+  ctx.uiConversation.events.register(turnDeletionDefinition)
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'turn-delete: dictionaries')
   ctx.slots.inject('conversation.chat.assistant-actions', () =>
     ctx.slots.register({
