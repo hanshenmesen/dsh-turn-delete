@@ -179,16 +179,71 @@ async function deleteUnderMaintenance(
   return { turn, seq: tombstone.seq }
 }
 
+/**
+ * Whether the session still has a turn that has not ended yet.
+ *
+ * Used to tell "the agent is really working" apart from "`agent.phase` is stuck
+ * outside `idle` while the durable events show the turn already closed".
+ */
+function hasOpenTurn(session: {
+  snapshotEvents?: () => readonly SessionEvent[]
+  events?: readonly SessionEvent[]
+}): boolean {
+  const open = new Set<number>()
+  for (const event of sessionEvents(session)) {
+    if (event.type === 'turn/start') open.add(event.data.turn)
+    else if (event.type === 'turn/end') open.delete(event.data.turn)
+  }
+  return open.size > 0
+}
+
+const BUSY_PHASE_RE = /already has active work/i
+
+/**
+ * Run one maintenance job, tolerating a phase that has not returned to idle yet.
+ *
+ * DSH 0.1.2-alpha.1 rejects `runMaintenance` synchronously while the agent phase
+ * is anything but `idle` (`agent "<id>" already has active work`), which can
+ * outlive the turn the UI already shows as finished. Wait briefly for idle and
+ * retry once; a genuinely stuck phase is handled by the caller's fallback.
+ */
+async function runMaintenanceIdleAware<T>(
+  agent: Agent,
+  job: (signal: AbortSignal) => Promise<T>,
+): Promise<T> {
+  try {
+    return await agent.runMaintenance(job)
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (!BUSY_PHASE_RE.test(message)) throw error
+    await Promise.race([
+      Promise.resolve().then(() => agent.whenIdle()).catch(() => {}),
+      new Promise(resolve => setTimeout(resolve, 4000)),
+    ])
+    return await agent.runMaintenance(job)
+  }
+}
+
 export async function deleteTurn(
   ctx: Context,
   agent: Agent,
   assistantMessageId: MessageId,
 ): Promise<TurnDeleteReceipt> {
   try {
-    return await agent.runMaintenance(signal =>
+    return await runMaintenanceIdleAware(agent, signal =>
       deleteUnderMaintenance(ctx, agent, assistantMessageId, signal))
   } catch (error: unknown) {
     if (error instanceof TurnDeleteError) throw error
-    throw new TurnDeleteError('AGENT_BUSY', error instanceof Error ? error.message : String(error))
+    const message = error instanceof Error ? error.message : String(error)
+    // Stuck-phase fallback: the agent claims active work, but the durable events
+    // hold no open turn — the deletion is safe to perform directly.
+    if (BUSY_PHASE_RE.test(message) && !hasOpenTurn(agent.session)) {
+      ctx.logger?.warn?.(
+        `turn-delete: agent "${agent.id}" phase is ${String(agent.phase?.kind)} `
+        + 'but no turn is open; deleting directly')
+      return await deleteUnderMaintenance(ctx, agent, assistantMessageId,
+        new AbortController().signal)
+    }
+    throw new TurnDeleteError('AGENT_BUSY', message)
   }
 }
